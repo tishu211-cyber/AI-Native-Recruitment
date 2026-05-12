@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-Native Recruitment — One Hire, End-to-End</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide-react@0.383.0/dist/umd/lucide-react.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef, useMemo } = React;
+    const { AlertTriangle, Brain, Target, User, Zap, ArrowRight, DollarSign, Radio, RotateCcw, Search, Play, Pause, SkipForward, Code, FileText, Eye, Layers, Cpu, BookOpen, TrendingUp, Award, Briefcase, GitBranch } = lucideReact;
+
+
+
+
+/* ───── Helpers ───── */
+function FadeIn({ children, delay = 0, y = 10, style = {} }) {
+  const [s, setS] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setS(true), delay); return () => clearTimeout(t); }, [delay]);
+  return <div style={{ opacity: s ? 1 : 0, transform: s ? "translateY(0)" : `translateY(${y}px)`, transition: "all 0.5s ease", ...style }}>{children}</div>;
+}
+function Tag({ children, variant = "default", style: s = {} }) {
+  const st = { default: { bg: "#f1f5f9", color: "#475569", border: "#e2e8f0" }, success: { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" }, danger: { bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" }, warning: { bg: "#fffbeb", color: "#b45309", border: "#fde68a" }, heading: { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" } }[variant] || { bg: "#f1f5f9", color: "#475569", border: "#e2e8f0" };
+  return <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 600, background: st.bg, color: st.color, border: `1px solid ${st.border}`, ...s }}>{children}</span>;
+}
+const C = { blue: "#1d4ed8", blueBg: "#eff6ff", blueBorder: "#bfdbfe", green: "#15803d", greenBg: "#f0fdf4", greenBorder: "#bbf7d0", red: "#b91c1c", amber: "#b45309", amberBg: "#fffbeb", amberBorder: "#fde68a", slate: "#334155", slateMd: "#64748b", slateLight: "#94a3b8", border: "#e2e8f0", bg: "#f8fafc", card: "#fff" };
+const SECTIONS = [{ label: "SENSE", sub: "Detect, Decompose & Screen" }, { label: "MATCH", sub: "Evaluate Through Real Work" }, { label: "COMMIT", sub: "Cost & Structure" }, { label: "LEARN", sub: "Close the Loop" }];
+const DURATIONS = [38000, 16000, 12000, 15000];
+
+/* ═══════════════════════════════════════
+   SENSE — Three Tabs
+   Tab 1: Predictive Task Graph
+   Tab 2: Living Candidate Profiles
+   Tab 3: Screening & Assignment
+   ═══════════════════════════════════════ */
+
+// ─── ENHANCED UNIFIED 4-LAYER GRAPH DATA ───
+
+const GRAPH_TASKS = [
+  { id: "t1", label: "Design eval framework", src: "Q3 OKR", skills: [{ id: "AI Safety", imp: "must" }, { id: "ML Systems", imp: "must" }], assign: "human" },
+  { id: "t2", label: "Red-teaming methodology", src: "Q3 OKR", skills: [{ id: "AI Safety", imp: "must" }, { id: "Product", imp: "nice" }], assign: "human" },
+  { id: "t3", label: "Define eval metrics", src: "OKR + Deps", skills: [{ id: "Product", imp: "must" }, { id: "Comms", imp: "nice" }], assign: "human" },
+  { id: "t4", label: "Safety benchmarks", src: "Attrition", skills: [{ id: "ML Eval", imp: "must" }, { id: "MLOps", imp: "nice" }], assign: "agent", agent: "EvalHarness" },
+  { id: "t5", label: "Monitor production", src: "Attrition", skills: [{ id: "MLOps", imp: "must" }, { id: "AI Safety", imp: "nice" }], assign: "hybrid", agent: "IncidentTriage" },
+  { id: "t6", label: "Analyze patterns", src: "Tech Debt", skills: [{ id: "ML Eval", imp: "must" }, { id: "Analysis", imp: "must" }], assign: "hybrid", agent: "ResearchDigest" },
+  { id: "t7", label: "Data pipelines", src: "Team Dep", skills: [{ id: "Data Eng", imp: "must" }], assign: "agent", agent: "DataPipeline" },
+  { id: "t8", label: "Eval reports", src: "Compliance", skills: [{ id: "Comms", imp: "must" }, { id: "ML Eval", imp: "nice" }], assign: "hybrid", agent: "DocGen" },
+  { id: "t9", label: "Regression tests", src: "Tech Debt", skills: [{ id: "Testing", imp: "must" }], assign: "agent", agent: "TestSuite" },
+  { id: "t10", label: "Security scanning", src: "Compliance", skills: [{ id: "Security", imp: "must" }], assign: "agent", agent: "SecurityScan" },
+];
+
+const SKILLS = [
+  { id: "AI Safety", market: "trending", demand: 4 },
+  { id: "ML Systems", market: "stable", demand: 2 },
+  { id: "ML Eval", market: "trending", demand: 4 },
+  { id: "Analysis", market: "stable", demand: 1 },
+  { id: "Product", market: "stable", demand: 2 },
+  { id: "Comms", market: "stable", demand: 2 },
+  { id: "MLOps", market: "trending", demand: 2 },
+  { id: "Data Eng", market: "stable", demand: 1 },
+  { id: "Testing", market: "sunsetting", demand: 1 },
+  { id: "Security", market: "stable", demand: 1 },
+];
+
+const SKILL_ADJ = [
+  { from: "AI Safety", to: "ML Eval" }, { from: "AI Safety", to: "MLOps" },
+  { from: "ML Systems", to: "MLOps" }, { from: "ML Systems", to: "Data Eng" },
+  { from: "ML Eval", to: "Analysis" }, { from: "ML Eval", to: "Testing" },
+  { from: "Product", to: "Comms" },
+];
+
+const LOGOS = {
+  "GitHub": { type: "svg" },
+  "LinkedIn": { type: "svg" },
+  "arXiv": { bg: "#B31B1B", text: "arXiv", fg: "#fff" },
+  "Publications": { bg: "#7C3AED", text: "Pub", fg: "#fff" },
+  "Internal": { bg: "#0369A1", text: "Int", fg: "#fff" },
+  "Learning": { bg: "#0D9488", text: "Lrn", fg: "#fff" },
+  "Perf Review": { bg: "#1E40AF", text: "PR", fg: "#fff" },
+  "ATS": { bg: "#64748B", text: "ATS", fg: "#fff" },
+  "Referral": { bg: "#C2410C", text: "Ref", fg: "#fff" },
+};
+
+const GITHUB_LOGO = "data:image/png;base64,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";
+const LINKEDIN_LOGO = "data:image/png;base64,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";
+
+function LogoIcon({ src, x, y, opacity }) {
+  if (src === "GitHub") {
+    return <image href={GITHUB_LOGO} x={x} y={y} width={18} height={18} opacity={opacity} style={{ borderRadius: 4 }} />;
+  }
+  if (src === "LinkedIn") {
+    return <image href={LINKEDIN_LOGO} x={x} y={y} width={18} height={18} opacity={opacity} />;
+  }
+  const logo = LOGOS[src] || { bg: "#94a3b8", text: "??", fg: "#fff" };
+  return <g transform={`translate(${x}, ${y})`} opacity={opacity}>
+    <rect width={22} height={18} rx={3} fill={logo.bg} />
+    <text x={11} y={13} textAnchor="middle" fontSize="7" fontWeight="800" fill={logo.fg} fontFamily="Arial, sans-serif">{logo.text}</text>
+  </g>;
+}
+
+const GRAPH_CANDS = [
+  { id: "c1", name: "Priya M.", sub: "Internal \u00b7 3.5yrs",
+    skills: [{ id: "ML Systems", prof: 0.9 }, { id: "ML Eval", prof: 0.8 }, { id: "Data Eng", prof: 0.85 }, { id: "MLOps", prof: 0.75 }, { id: "Testing", prof: 0.7 }],
+    gaps: ["AI Safety", "Product"], overlap: 62, projected: 78, learn: 82,
+    trajectory: [{ t: "SWE", yr: "20" }, { t: "Sr SWE", yr: "22" }, { t: "AI Safety?", yr: "26", p: true }],
+    activities: [
+      { label: "Model quality pipeline 18mo", src: "Internal", evidences: ["ML Systems", "ML Eval"] },
+      { label: "2 AI Safety courses", src: "Learning", evidences: ["AI Safety"] },
+      { label: "Search ranking eval lead", src: "Internal", evidences: ["ML Eval", "Data Eng"] },
+      { label: "Manager: Exceeds", src: "Perf Review", evidences: ["MLOps"] },
+    ] },
+  { id: "c2", name: "Arjun K.", sub: "Prev Applicant",
+    skills: [{ id: "ML Systems", prof: 0.85 }, { id: "AI Safety", prof: 0.75 }, { id: "ML Eval", prof: 0.9 }, { id: "Analysis", prof: 0.8 }, { id: "Data Eng", prof: 0.7 }, { id: "MLOps", prof: 0.65 }],
+    gaps: ["Product"], overlap: 76, projected: 88, learn: 88,
+    trajectory: [{ t: "ML Eng", yr: "21" }, { t: "ML II", yr: "23" }, { t: "Sr Safety", yr: "25" }, { t: "Staff?", yr: "27", p: true }],
+    activities: [
+      { label: "2 LLM robustness papers", src: "arXiv", evidences: ["ML Eval", "AI Safety", "Analysis"] },
+      { label: "OS eval framework 1.2K\u2605", src: "GitHub", evidences: ["ML Systems", "ML Eval"] },
+      { label: "47 repo contributors", src: "GitHub", evidences: ["ML Systems"] },
+      { label: "Final round 9mo ago", src: "ATS", evidences: [] },
+    ] },
+  { id: "c3", name: "Sarah L.", sub: "Referral \u00b7 8yrs",
+    skills: [{ id: "AI Safety", prof: 0.95 }, { id: "ML Systems", prof: 0.9 }, { id: "ML Eval", prof: 0.92 }, { id: "Analysis", prof: 0.85 }, { id: "Product", prof: 0.8 }, { id: "Comms", prof: 0.85 }, { id: "MLOps", prof: 0.7 }],
+    gaps: [], overlap: 89, projected: 95, learn: 91,
+    trajectory: [{ t: "ML Eng", yr: "18" }, { t: "Sr ML", yr: "20" }, { t: "Sr Res Safety", yr: "22" }, { t: "Staff?", yr: "26", p: true }],
+    activities: [
+      { label: "Red-team pipeline 847 commits", src: "GitHub", evidences: ["AI Safety", "ML Systems", "MLOps"] },
+      { label: "200+ failure mode taxonomy", src: "GitHub", evidences: ["AI Safety", "ML Eval"] },
+      { label: "2 conf talks 140 citations", src: "Publications", evidences: ["Comms", "ML Eval", "Analysis"] },
+      { label: "Ref: Staff SWE T&S", src: "Referral", evidences: ["AI Safety", "Product"] },
+    ] },
+];
+
+const LX = { tasks: 5, skills: 255, cands: 500, acts: 735 };
+const tY = (i) => 38 + i * 50;
+const sY = (i) => 38 + i * 50;
+const cY = (i) => 55 + i * 178;
+const aY = (ci, ai) => cY(ci) - 28 + ai * 36;
+const mI = (m) => m === "trending" ? "\u2191" : m === "sunsetting" ? "\u2193" : "\u2192";
+const mC = (m) => m === "trending" ? C.green : m === "sunsetting" ? C.red : C.slateLight;
+
+function UnifiedGraphTab() {
+  const [hov, setHov] = useState(null);
+  const ht = hov?.type === "task" ? GRAPH_TASKS.find(t => t.id === hov.id) : null;
+  const hs = hov?.type === "skill" ? hov.id : null;
+  const hc = hov?.type === "cand" ? GRAPH_CANDS.find(c => c.id === hov.id) : null;
+  const ha = hov?.type === "act" ? hov : null;
+
+  // Build active skills set — includes adjacency when hovering a skill
+  const actS = new Set();
+  if (ht) ht.skills.forEach(s => actS.add(s.id));
+  if (hs) {
+    actS.add(hs);
+    SKILL_ADJ.forEach(r => { if (r.from === hs) actS.add(r.to); if (r.to === hs) actS.add(r.from); });
+  }
+  if (hc) { hc.skills.forEach(s => actS.add(s.id)); hc.gaps.forEach(s => actS.add(s)); }
+  if (ha) {
+    const parentCand = GRAPH_CANDS[ha.ci];
+    parentCand.activities[ha.ai].evidences.forEach(s => actS.add(s));
+    parentCand.skills.forEach(s => actS.add(s.id));
+    parentCand.gaps.forEach(s => actS.add(s));
+  }
+
+  const isTa = (t) => !hov || ht?.id === t.id || (hs && t.skills.some(s => s.id === hs || actS.has(s.id))) || (hc && t.skills.some(s => hc.skills.some(cs => cs.id === s.id))) || (ha && t.skills.some(s => actS.has(s.id)));
+  const isCa = (c) => !hov || hc?.id === c.id || (ha && GRAPH_CANDS.indexOf(c) === ha.ci) || (hs && (c.skills.some(s => s.id === hs) || c.gaps.includes(hs))) || (ht && ht.skills.some(s => c.skills.some(cs => cs.id === s.id)));
+  const isSa = (s) => !hov || actS.has(s);
+
+  const demS = new Set(GRAPH_TASKS.flatMap(t => t.skills.map(s => s.id)));
+  const bestS = new Set(GRAPH_CANDS[2].skills.map(s => s.id));
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+        <span style={{ fontSize: "11px", color: C.slateMd }}>Hover any node to trace connections. Edge thickness = importance/proficiency. Skills show market signals + adjacency.</span>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {[{ c: C.blue, l: "Task" }, { c: "#8b5cf6", l: "Skill" }, { c: C.green, l: "Match" }, { c: C.red, l: "Gap" }, { c: "#f59e0b", l: "Activity" }, { c: "#c4b5fd", l: "Adjacent" }].map((i, j) => (
+            <div key={j} style={{ display: "flex", alignItems: "center", gap: "3px" }}><div style={{ width: 7, height: 7, borderRadius: "50%", background: i.c }} /><span style={{ fontSize: "9px", color: C.slateLight }}>{i.l}</span></div>
+          ))}
+        </div>
+      </div>
+      <svg width="1060" height="590" style={{ background: C.card, borderRadius: "10px", border: "1px solid " + C.border }}>
+        <text x={LX.tasks + 80} y="16" textAnchor="middle" fontSize="8" fontWeight="700" letterSpacing="1.2" fill={C.blue}>EXPECTED UNMET</text>
+        <text x={LX.tasks + 80} y="26" textAnchor="middle" fontSize="8" fontWeight="700" letterSpacing="1.2" fill={C.blue}>WORK CAPACITY</text>
+        <text x={LX.skills + 55} y="22" textAnchor="middle" fontSize="8" fontWeight="700" letterSpacing="1.2" fill="#8b5cf6">SKILLS</text>
+        <text x={LX.cands + 65} y="22" textAnchor="middle" fontSize="8" fontWeight="700" letterSpacing="1.2" fill={C.slate}>CANDIDATES</text>
+        <text x={LX.acts + 120} y="22" textAnchor="middle" fontSize="8" fontWeight="700" letterSpacing="1.2" fill="#b45309">OBSERVED ACTIVITY</text>
+
+        {/* Skill adjacency */}
+        {SKILL_ADJ.map((r, i) => {
+          const s1 = SKILLS.findIndex(s => s.id === r.from), s2 = SKILLS.findIndex(s => s.id === r.to);
+          if (s1 < 0 || s2 < 0) return null;
+          const on = isSa(r.from) && isSa(r.to);
+          return <line key={"adj" + i} x1={LX.skills + 118} y1={sY(s1) + 12} x2={LX.skills + 118} y2={sY(s2) + 12}
+            stroke="#c4b5fd" strokeWidth={on ? 1 : 0.3} opacity={on ? 0.3 : 0.04} strokeDasharray="2,4" style={{ transition: "all 0.3s" }} />;
+        })}
+        {/* Task->Skill (thickness by importance) */}
+        {GRAPH_TASKS.map(t => t.skills.map(sk => {
+          const si = SKILLS.findIndex(s => s.id === sk.id); if (si < 0) return null;
+          const on = isTa(t) && isSa(sk.id);
+          return <line key={"ts-" + t.id + "-" + sk.id} x1={LX.tasks + 180} y1={tY(GRAPH_TASKS.indexOf(t)) + 17} x2={LX.skills} y2={sY(si) + 12}
+            stroke={C.blue} strokeWidth={on ? (sk.imp === "must" ? 1.5 : 0.7) : 0.2} opacity={on ? 0.35 : 0.03}
+            strokeDasharray={sk.imp === "must" ? "none" : "3,3"} style={{ transition: "all 0.3s" }} />;
+        }))}
+        {/* Cand->Skill (thickness by proficiency) */}
+        {GRAPH_CANDS.map((c, ci) => c.skills.map(sk => {
+          const si = SKILLS.findIndex(s => s.id === sk.id); if (si < 0) return null;
+          const m = demS.has(sk.id); const on = isCa(c) && isSa(sk.id);
+          return <line key={"cs-" + c.id + "-" + sk.id} x1={LX.cands} y1={cY(ci) + 22} x2={LX.skills + 118} y2={sY(si) + 12}
+            stroke={m ? C.green : C.slateLight} strokeWidth={on ? sk.prof * 2.5 : 0.2} opacity={on ? 0.4 : 0.02} style={{ transition: "all 0.3s" }} />;
+        }))}
+        {/* Cand->Skill gaps */}
+        {GRAPH_CANDS.map((c, ci) => c.gaps.map(sk => {
+          const si = SKILLS.findIndex(s => s.id === sk); if (si < 0) return null;
+          const on = isCa(c);
+          return <line key={"cg-" + c.id + "-" + sk} x1={LX.cands} y1={cY(ci) + 22} x2={LX.skills + 118} y2={sY(si) + 12}
+            stroke={C.red} strokeWidth={on ? 1 : 0.2} opacity={on ? 0.3 : 0.02} strokeDasharray="2,2" style={{ transition: "all 0.3s" }} />;
+        }))}
+        {/* Activity->Skill provenance (on hover) */}
+        {GRAPH_CANDS.map((c, ci) => c.activities.map((a, ai) => a.evidences.map(sk => {
+          const si = SKILLS.findIndex(s => s.id === sk); if (si < 0) return null;
+          const on = (hc?.id === c.id) || (ha?.ci === ci && ha?.ai === ai);
+          return <line key={"as-" + ci + "-" + ai + "-" + sk} x1={LX.acts} y1={aY(ci, ai) + 11} x2={LX.skills + 118} y2={sY(si) + 12}
+            stroke="#f59e0b" strokeWidth={on ? 0.8 : 0} opacity={on ? 0.2 : 0} strokeDasharray="1,2" style={{ transition: "all 0.4s" }} />;
+        })))}
+        {/* Cand->Activity */}
+        {GRAPH_CANDS.map((c, ci) => c.activities.map((a, ai) => {
+          const on = isCa(c);
+          return <line key={"ca-" + c.id + "-" + ai} x1={LX.cands + 155} y1={cY(ci) + 22} x2={LX.acts} y2={aY(ci, ai) + 11}
+            stroke="#f59e0b" strokeWidth={on ? 0.6 : 0.15} opacity={on ? 0.2 : 0.02} strokeDasharray="2,2" style={{ transition: "all 0.3s" }} />;
+        }))}
+
+        {/* LAYER 1: Tasks */}
+        {GRAPH_TASKS.map((t, i) => {
+          const on = isTa(t); const ac = t.assign === "agent" ? C.green : t.assign === "hybrid" ? C.blue : C.amber;
+          return <g key={t.id} onMouseEnter={() => setHov({ type: "task", id: t.id })} onMouseLeave={() => setHov(null)} style={{ cursor: "pointer" }}>
+            <rect x={LX.tasks} y={tY(i)} width={180} height={34} rx={5} fill={on ? C.blueBg : C.card} stroke={on ? C.blueBorder : C.border} strokeWidth={on ? 1.2 : 0.7} opacity={on ? 1 : 0.2} style={{ transition: "all 0.3s" }} />
+            <text x={LX.tasks + 5} y={tY(i) + 14} fontSize="9" fontWeight="500" fill={on ? C.slate : C.slateLight}>{t.label}</text>
+            <text x={LX.tasks + 5} y={tY(i) + 27} fontSize="7" fill={on ? C.slateMd : "#cbd5e1"}>{"\u21b3 " + t.src}</text>
+            <circle cx={LX.tasks + 170} cy={tY(i) + 17} r={3} fill={ac} opacity={on ? 0.7 : 0.15} />
+          </g>;
+        })}
+
+        {/* LAYER 2: Skills (market signals + adjacency) */}
+        {SKILLS.map((sk, i) => {
+          const on = isSa(sk.id); const d = demS.has(sk.id); const s = bestS.has(sk.id);
+          const m = d && s; const g = d && !s;
+          return <g key={sk.id} onMouseEnter={() => setHov({ type: "skill", id: sk.id })} onMouseLeave={() => setHov(null)} style={{ cursor: "pointer" }}>
+            <rect x={LX.skills} y={sY(i)} width={118} height={24} rx={12}
+              fill={on ? (m ? C.greenBg : g ? "#fef2f2" : "#f5f3ff") : C.bg}
+              stroke={on ? (m ? C.greenBorder : g ? "#fecaca" : "#c4b5fd") : C.border}
+              strokeWidth={on ? 1.5 : 0.7} opacity={on ? 1 : 0.2} style={{ transition: "all 0.3s" }} />
+            <text x={LX.skills + 8} y={sY(i) + 15} fontSize="9" fontWeight="600"
+              fill={on ? (m ? C.green : g ? C.red : "#6d28d9") : C.slateLight}>{sk.id}</text>
+            <text x={LX.skills + 105} y={sY(i) + 15} fontSize="9" fontWeight="700"
+              fill={mC(sk.market)} opacity={on ? 1 : 0.3}>{mI(sk.market)}</text>
+          </g>;
+        })}
+
+        {/* LAYER 3: Candidates (with trajectory) */}
+        {GRAPH_CANDS.map((c, i) => {
+          const on = isCa(c); const best = i === 2;
+          return <g key={c.id} onMouseEnter={() => setHov({ type: "cand", id: c.id })} onMouseLeave={() => setHov(null)} style={{ cursor: "pointer" }}>
+            <rect x={LX.cands} y={cY(i) - 12} width={155} height={76} rx={8}
+              fill={on ? (best ? C.greenBg : C.blueBg) : C.card}
+              stroke={on ? (best ? C.greenBorder : C.blueBorder) : C.border}
+              strokeWidth={on ? 1.5 : 0.7} opacity={on ? 1 : 0.2} style={{ transition: "all 0.3s" }} />
+            <text x={LX.cands + 8} y={cY(i) + 5} fontSize="11" fontWeight="600" fill={on ? C.slate : C.slateLight}>{c.name}</text>
+            <text x={LX.cands + 8} y={cY(i) + 18} fontSize="8" fill={on ? C.slateMd : "#cbd5e1"}>{c.sub}</text>
+            <text x={LX.cands + 8} y={cY(i) + 33} fontSize="9" fontWeight="600" fill={on ? C.blue : C.slateLight}>{c.overlap}%</text>
+            <text x={LX.cands + 38} y={cY(i) + 33} fontSize="7" fill={C.slateLight}>\u2192</text>
+            <text x={LX.cands + 48} y={cY(i) + 33} fontSize="9" fontWeight="600" fill={on ? C.green : C.slateLight}>{c.projected}%</text>
+            {on && c.trajectory.map((step, si) => {
+              const tx = LX.cands + 8 + si * 34; const ty = cY(i) + 50;
+              return <g key={si}>
+                <circle cx={tx + 4} cy={ty} r={2.5} fill={step.p ? C.blueBg : C.blue} stroke={step.p ? C.blueBorder : C.blue} strokeWidth={0.8} />
+                {si > 0 && <line x1={tx - 26} y1={ty} x2={tx} y2={ty} stroke={C.blueBorder} strokeWidth={0.6} strokeDasharray={step.p ? "2,2" : "none"} />}
+                <text x={tx + 4} y={ty + 10} textAnchor="middle" fontSize="6" fill={step.p ? C.blue : C.slateMd}>{step.t}</text>
+              </g>;
+            })}
+          </g>;
+        })}
+
+        {/* LAYER 4: Activities (with logos + provenance) */}
+        {GRAPH_CANDS.map((c, ci) => c.activities.map((a, ai) => {
+          const on = isCa(c); const isH = ha?.ci === ci && ha?.ai === ai;
+          return <g key={"a-" + ci + "-" + ai}
+            onMouseEnter={() => setHov({ type: "act", ci, ai })} onMouseLeave={() => setHov(null)}
+            style={{ cursor: "pointer" }} opacity={on ? 1 : 0.12}>
+            <rect x={LX.acts} y={aY(ci, ai)} width={225} height={22} rx={4}
+              fill={isH ? "#fffbeb" : on ? C.bg : C.bg} stroke={isH ? "#fde68a" : C.border} strokeWidth={isH ? 1.2 : 0.7} style={{ transition: "all 0.3s" }} />
+            <LogoIcon src={a.src} x={LX.acts + 2} y={aY(ci, ai) + 2} opacity={on ? 0.9 : 0.3} />
+            <text x={LX.acts + 28} y={aY(ci, ai) + 14} fontSize="8" fill={on ? "#78350f" : C.slateLight}>{a.label}</text>
+            {a.evidences.length > 0 && on && <text x={LX.acts + 217} y={aY(ci, ai) + 14} textAnchor="end" fontSize="7" fill={isH ? C.green : C.slateLight}>{"→" + a.evidences.length}</text>}
+          </g>;
+        }))}
+      </svg>
+    </div>
+  );
+}
+
+// ─── SCREENING & ASSIGNMENT TAB ───
+
+// ─── SCREENING & ASSIGNMENT TAB ───
+const AGENT_INVENTORY = [
+  { name: "EvalHarness", cap: "Safety benchmark execution", status: "Pilot" },
+  { name: "TestSuite", cap: "Auto-generate tests", status: "Deployed" },
+  { name: "DataPipeline", cap: "Data ingestion", status: "Deployed" },
+  { name: "SecurityScan", cap: "Vulnerability scanning", status: "Deployed" },
+  { name: "IncidentTriage", cap: "Incident routing", status: "Deployed" },
+  { name: "DocGen", cap: "Doc generation", status: "Deployed" },
+  { name: "ResearchDigest", cap: "Paper summarization", status: "Beta" },
+  { name: "CodeReview", cap: "Code review", status: "Deployed" },
+  { name: "TranslationAgent", cap: "Translation", status: "Deployed" },
+];
+
+function ScreeningTab() {
+  const [assignPhase, setAssignPhase] = useState(0);
+  useEffect(() => {
+    setTimeout(() => setAssignPhase(1), 800);   // show inventory
+    setTimeout(() => setAssignPhase(2), 2500);   // assign agents
+    setTimeout(() => setAssignPhase(3), 5000);   // show candidates
+    setTimeout(() => setAssignPhase(4), 7500);   // screening result
+  }, []);
+
+  const demandedSkills = new Set(GRAPH_TASKS.flatMap(t => t.skills));
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: "12px" }}>
+        {/* Left: Tasks with assignments */}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "1.5px", color: C.blue, marginBottom: "6px" }}>TASKS → AGENT / HUMAN</div>
+          <div style={{ background: C.card, borderRadius: "8px", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+            {GRAPH_TASKS.map((task, i) => (
+              <FadeIn key={i} delay={200 + i * 80}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderBottom: `1px solid ${C.bg}` }}>
+                  <span style={{ fontSize: "10px", color: C.slate, flex: 1 }}>{task.label}</span>
+                  {assignPhase >= 2 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "3px", padding: "1px 6px", borderRadius: "4px",
+                      background: task.assign === "agent" ? C.greenBg : task.assign === "hybrid" ? C.blueBg : C.amberBg,
+                      border: `1px solid ${task.assign === "agent" ? C.greenBorder : task.assign === "hybrid" ? C.blueBorder : C.amberBorder}`,
+                      opacity: 0, animation: `fadeSlideIn 0.3s ease ${i * 0.1}s forwards`
+                    }}>
+                      {task.assign !== "human" && <Cpu size={8} color={task.assign === "agent" ? C.green : C.blue} />}
+                      {task.assign !== "agent" && <User size={8} color={task.assign === "human" ? C.amber : C.blue} />}
+                      <span style={{ fontSize: "8px", fontWeight: 600, color: task.assign === "agent" ? C.green : task.assign === "hybrid" ? C.blue : C.amber }}>
+                        {task.agent || "Human"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+
+        {/* Center: Agent Inventory */}
+        {assignPhase >= 1 && (
+          <FadeIn delay={0} style={{ flex: 1 }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "1.5px", color: C.blue, marginBottom: "6px" }}>AGENT INVENTORY</div>
+            <div style={{ background: C.card, borderRadius: "8px", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+              {AGENT_INVENTORY.map((agent, i) => {
+                const assigned = GRAPH_TASKS.some(t => t.agent === agent.name);
+                return (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "center", gap: "6px", padding: "5px 10px", borderBottom: `1px solid ${C.bg}`,
+                    background: assignPhase >= 2 && assigned ? `rgba(21,128,61,0.03)` : "transparent",
+                    borderLeft: assignPhase >= 2 && assigned ? `2px solid ${C.green}` : "2px solid transparent",
+                    transition: "all 0.5s"
+                  }}>
+                    <Cpu size={8} color={assigned && assignPhase >= 2 ? C.green : C.slateLight} />
+                    <span style={{ fontSize: "10px", fontWeight: 600, color: assigned ? C.slate : C.slateLight, flex: 1 }}>{agent.name}</span>
+                    <Tag variant={agent.status === "Deployed" ? "success" : agent.status === "Pilot" ? "warning" : "default"} style={{ fontSize: "7px" }}>{agent.status}</Tag>
+                    {assignPhase >= 2 && assigned && <span style={{ fontSize: "8px", color: C.green }}>✓</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </FadeIn>
+        )}
+
+        {/* Right: Candidate screening */}
+        {assignPhase >= 3 && (
+          <FadeIn delay={0} style={{ flex: 1 }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "1.5px", color: C.blue, marginBottom: "6px" }}>CANDIDATE SCREENING (Human tasks)</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {GRAPH_CANDS.map((cand, i) => (
+                <FadeIn key={i} delay={i * 300}>
+                  <div style={{ background: C.card, borderRadius: "8px", border: `1px solid ${i === 2 && assignPhase >= 4 ? C.greenBorder : C.border}`, padding: "10px",
+                    boxShadow: i === 2 && assignPhase >= 4 ? "0 2px 8px rgba(21,128,61,0.08)" : "none" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <span style={{ fontSize: "12px", fontWeight: 600, color: C.slate }}>{cand.name}</span>
+                      <span style={{ fontSize: "14px", fontWeight: 300, color: C.blue }}>{cand.overlap}% <ArrowRight size={8} color={C.slateLight} style={{ display: "inline" }} /> <span style={{ color: C.green }}>{cand.projected}%</span></span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", marginBottom: "4px" }}>
+                      {cand.skills.map((s, j) => <Tag key={j} variant={demandedSkills.has(s) ? "success" : "default"} style={{ fontSize: "8px", padding: "0 4px" }}>{s}</Tag>)}
+                      {cand.gaps.map((g, j) => <Tag key={j} variant="danger" style={{ fontSize: "8px", padding: "0 4px" }}>{g} ⚠</Tag>)}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "8px", color: C.slateLight }}>Learnability</span>
+                      <div style={{ flex: 1, height: 2, background: C.bg, borderRadius: 1 }}>
+                        <div style={{ height: 2, borderRadius: 1, background: cand.learn > 85 ? C.green : C.blue, width: `${cand.learn}%` }} />
+                      </div>
+                      <span style={{ fontSize: "9px", fontWeight: 600, color: C.slate }}>{cand.learn}</span>
+                    </div>
+                    {i === 2 && assignPhase >= 4 && (
+                      <div style={{ marginTop: "6px", padding: "4px 8px", background: C.greenBg, borderRadius: "4px", border: `1px solid ${C.greenBorder}` }}>
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: C.green }}>→ Advances to real-work evaluation</span>
+                      </div>
+                    )}
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+          </FadeIn>
+        )}
+      </div>
+      <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+    </div>
+  );
+}
+
+// ─── SENSE MAIN COMPONENT ───
+function SenseStep({ onProceedToMatch, onReplay }) {
+  const [tab, setTab] = useState(0);
+  const tabs = ["Task Graph ↔ Talent Graph", "Screening & Assignment"];
+
+  return (
+    <div style={{ padding: "16px 32px", maxWidth: 1200, margin: "0 auto" }}>
+      <FadeIn delay={100}>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+          {tabs.map((t, i) => (
+            <button key={i} onClick={() => setTab(i)} style={{
+              padding: "7px 16px", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer",
+              border: `1px solid ${tab === i ? C.blue : C.border}`, background: tab === i ? C.blueBg : C.card,
+              color: tab === i ? C.blue : C.slateLight, transition: "all 0.3s"
+            }}>{t}</button>
+          ))}
+        </div>
+      </FadeIn>
+      {tab === 0 && <UnifiedGraphTab />}
+      {tab === 1 && <ScreeningTab />}
+      <div style={{ marginTop: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <button onClick={onReplay} style={{
+          display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px",
+          border: "1px solid " + C.border, background: C.card, color: C.slateMd, fontSize: "12px", cursor: "pointer"
+        }}><RotateCcw size={12} /> Replay</button>
+        {tab === 0 && (
+          <button onClick={() => setTab(1)} style={{
+            display: "flex", alignItems: "center", gap: "6px", padding: "10px 24px", borderRadius: "8px",
+            border: `1px solid ${C.blue}`, background: C.blueBg, color: C.blue,
+            fontSize: "13px", fontWeight: 600, cursor: "pointer"
+          }}>Proceed to Screening <ArrowRight size={14} /></button>
+        )}
+        {tab === 1 && onProceedToMatch && (
+          <button onClick={onProceedToMatch} style={{
+            display: "flex", alignItems: "center", gap: "6px", padding: "10px 24px", borderRadius: "8px",
+            border: `1px solid ${C.blue}`, background: C.blueBg, color: C.blue,
+            fontSize: "13px", fontWeight: 600, cursor: "pointer"
+          }}>Proceed to Evaluation <ArrowRight size={14} /></button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════ MATCH ═══════ */
+const WORK_EVIDENCE = [
+  { source: "GitHub", icon: Code, label: "Red-teaming framework · 847 commits",
+    findings: [{ skill: "AI Safety", signal: "Failure mode taxonomy by deployment context", strength: "Strong" }, { skill: "ML Systems", signal: "Clean detection/classification/alerting architecture", strength: "Strong" }, { skill: "Testing", signal: "Near-miss tracking — 30% of new tests from this", strength: "Strong" }] },
+  { source: "Publications", icon: FileText, label: "2 papers on LLM robustness · 140 citations",
+    findings: [{ skill: "ML Eval", signal: "Demographic-paired testing catches framing bias", strength: "Strong" }, { skill: "Analysis", signal: "Controlled for 12 confounders", strength: "Strong" }, { skill: "Comms", signal: "Clear exposition, high practical utility", strength: "Strong" }] },
+  { source: "Simulation", icon: Eye, label: "Live task: 6-wk eval plan · 45 min",
+    findings: [{ skill: "Product", signal: "Started from deployment-context failures", strength: "Strong" }, { skill: "AI Safety", signal: "Proactively flagged timeline risk", strength: "Strong" }, { skill: "MLOps", signal: "Async monitoring design", strength: "Moderate" }] },
+];
+const SCORECARD = [
+  { skill: "AI Safety", score: 5, ev: "Pipeline + paired testing + deployment-context" },
+  { skill: "ML Systems", score: 5, ev: "OS architecture + simulation design" },
+  { skill: "ML Eval", score: 5, ev: "Near-miss tracking + published methodology" },
+  { skill: "Product", score: 4, ev: "Deployment-context instinct" },
+  { skill: "Comms", score: 4, ev: "Technical writing + conferences" },
+  { skill: "MLOps", score: 4, ev: "Async pipeline confirmed" },
+];
+
+function MatchStep() {
+  const [visEv, setVisEv] = useState(0), [showSc, setShowSc] = useState(false);
+  useEffect(() => { if (visEv < WORK_EVIDENCE.length) { const t = setTimeout(() => setVisEv(v => v + 1), 2800); return () => clearTimeout(t); } else { setTimeout(() => setShowSc(true), 1200); } }, [visEv]);
+  return (
+    <div style={{ padding: "18px 32px", maxWidth: 1200, margin: "0 auto" }}>
+      <FadeIn delay={100}><div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}><span style={{ fontSize: "14px", fontWeight: 600, color: C.slate }}>Sarah L.</span><Tag>Referral</Tag><Tag variant="success">89% overlap</Tag></div><p style={{ fontSize: "12px", color: C.slateMd, margin: "0 0 12px" }}>Evaluating through real work products and simulation — not interviews.</p></FadeIn>
+      <div style={{ display: "flex", gap: "12px" }}>
+        <div style={{ flex: 3 }}>{WORK_EVIDENCE.map((ev, i) => { const Icon = ev.icon; return <div key={i} style={{ background: C.card, borderRadius: "10px", border: `1px solid ${C.border}`, padding: "12px", marginBottom: "8px", opacity: i < visEv ? 1 : 0, transform: i < visEv ? "translateY(0)" : "translateY(8px)", transition: "all 0.5s" }}><div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}><div style={{ width: 20, height: 20, borderRadius: "4px", background: C.blueBg, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={10} color={C.blue} /></div><span style={{ fontSize: "11px", fontWeight: 700, color: C.slate }}>{ev.source}</span><span style={{ fontSize: "10px", color: C.slateLight }}>{ev.label}</span></div>{ev.findings.map((f, j) => <div key={j} style={{ display: "flex", gap: "5px", padding: "4px 0 4px 26px", borderTop: `1px solid ${C.bg}` }}><Tag variant="success" style={{ fontSize: "8px", flexShrink: 0 }}>{f.skill}</Tag><span style={{ fontSize: "10px", color: C.slateMd, lineHeight: 1.4, flex: 1 }}>{f.signal}</span><Tag variant={f.strength === "Strong" ? "success" : "default"} style={{ fontSize: "8px" }}>{f.strength}</Tag></div>)}</div>; })}</div>
+        <div style={{ flex: 2 }}>
+          {!showSc && visEv > 0 && <div style={{ background: C.card, borderRadius: "10px", border: `1px solid ${C.border}`, padding: "16px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 120 }}><div><div style={{ width: 6, height: 6, borderRadius: "50%", background: C.blue, animation: "pulse 1s infinite", margin: "0 auto 6px" }} /><span style={{ fontSize: "10px", color: C.slateLight }}>Analyzing {visEv}/{WORK_EVIDENCE.length}...</span></div></div>}
+          {showSc && <FadeIn delay={0}><div style={{ background: C.card, borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+            <div style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}><div><div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "1px", color: C.blue }}>SCORECARD</div><div style={{ fontSize: "9px", color: C.slateLight }}>From observed work</div></div><div style={{ fontSize: "24px", fontWeight: 300, color: C.blue }}>4.5</div></div>
+            {SCORECARD.map((r, i) => <FadeIn key={i} delay={100 + i * 60}><div style={{ padding: "7px 12px", borderBottom: i < SCORECARD.length - 1 ? `1px solid ${C.bg}` : "none" }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1px" }}><span style={{ fontSize: "11px", fontWeight: 500, color: C.slate }}>{r.skill}</span><div style={{ display: "flex", gap: "2px" }}>{[1,2,3,4,5].map(n => <div key={n} style={{ width: 5, height: 5, borderRadius: "50%", background: n <= r.score ? C.blue : "#e2e8f0" }} />)}</div></div><div style={{ fontSize: "9px", color: C.slateLight, lineHeight: 1.3 }}>{r.ev}</div></div></FadeIn>)}
+            <div style={{ padding: "8px 12px", background: C.greenBg }}><span style={{ fontSize: "11px", fontWeight: 700, color: C.green }}>Strong Hire</span><span style={{ fontSize: "10px", color: C.green, opacity: 0.8, marginLeft: 6 }}>All from observed work.</span></div>
+          </div></FadeIn>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════ COMMIT ═══════ */
+const COSTS = [
+  { task: "Design eval framework", type: "Human", model: "Project", cost: "$28K", period: "6 wks" },
+  { task: "Red-teaming methodology", type: "Human", model: "Project", cost: "$22K", period: "4 wks" },
+  { task: "Define eval metrics", type: "Human", model: "Time", cost: "$4.8K/mo", period: "Fractional" },
+  { task: "Safety benchmarks", type: "AI", model: "Per-run", cost: "$340/mo", period: "EvalHarness" },
+  { task: "Regression tests", type: "AI", model: "Per-test", cost: "$180/mo", period: "TestSuite" },
+  { task: "Monitor & triage", type: "H+AI", model: "Blended", cost: "$620/mo", period: "Agent+Human" },
+  { task: "Data pipelines", type: "AI", model: "Per-job", cost: "$120/mo", period: "DataPipeline" },
+  { task: "Eval reports", type: "H+AI", model: "Blended", cost: "$1.1K/mo", period: "DocGen+Human" },
+  { task: "Security scan", type: "AI", model: "Per-scan", cost: "$450/mo", period: "SecurityScan" },
+  { task: "Analyze patterns", type: "H+AI", model: "Blended", cost: "$2.2K/mo", period: "Research+Human" },
+];
+
+function CommitStep() {
+  const [s1, setS1] = useState(false), [s2, setS2] = useState(false);
+  useEffect(() => { setTimeout(() => setS1(true), 1200); setTimeout(() => setS2(true), 2200); }, []);
+  return (
+    <div style={{ padding: "18px 32px", maxWidth: 1200, margin: "0 auto" }}>
+      <FadeIn delay={100}><p style={{ fontSize: "12px", color: C.slateMd, margin: "0 0 12px" }}>Each task priced by engagement model — project, time-based, per-outcome, or blended.</p></FadeIn>
+      <div style={{ background: C.card, borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 55px 65px 65px 80px", padding: "6px 12px", borderBottom: `1px solid ${C.border}`, fontSize: "9px", fontWeight: 700, letterSpacing: "1px", color: C.slateLight, background: C.bg }}><span>TASK</span><span>TYPE</span><span>MODEL</span><span>COST</span><span>PERIOD</span></div>
+        <div style={{ maxHeight: 220, overflowY: "auto" }}>{COSTS.map((r, i) => <FadeIn key={i} delay={100 + i * 50}><div style={{ display: "grid", gridTemplateColumns: "1fr 55px 65px 65px 80px", padding: "6px 12px", borderBottom: `1px solid ${C.bg}`, fontSize: "11px", alignItems: "center" }}><span style={{ color: C.slate }}>{r.task}</span><Tag>{r.type}</Tag><Tag>{r.model}</Tag><span style={{ fontWeight: 600, color: C.slate }}>{r.cost}</span><span style={{ fontSize: "10px", color: C.slateLight }}>{r.period}</span></div></FadeIn>)}</div>
+      </div>
+      {s1 && <FadeIn delay={0}><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px", marginBottom: "10px" }}>{[{ l: "Human (1x)", v: "$50K" }, { l: "Human/mo", v: "$4.8K" }, { l: "AI Agents", v: "$1.1K/mo" }, { l: "Blended", v: "$3.9K/mo" }].map((i, j) => <div key={j} style={{ background: C.card, borderRadius: "8px", border: `1px solid ${C.border}`, padding: "10px", textAlign: "center" }}><div style={{ fontSize: "9px", fontWeight: 700, color: C.slateLight }}>{i.l}</div><div style={{ fontSize: "20px", fontWeight: 300, color: C.slate }}>{i.v}</div></div>)}</div></FadeIn>}
+      {s2 && <FadeIn delay={0}><div style={{ display: "flex", gap: "10px" }}><div style={{ flex: 1, background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}`, padding: "10px", textAlign: "center" }}><div style={{ fontSize: "10px", color: C.slateLight }}>Traditional FTE</div><div style={{ fontSize: "22px", fontWeight: 300, color: C.slateLight }}>$442K/yr</div></div><div style={{ display: "flex", alignItems: "center" }}><ArrowRight size={14} color={C.green} /></div><div style={{ flex: 1, background: C.greenBg, borderRadius: "8px", border: `1px solid ${C.greenBorder}`, padding: "10px", textAlign: "center" }}><div style={{ fontSize: "10px", color: C.green, fontWeight: 700 }}>Task-based</div><div style={{ fontSize: "22px", fontWeight: 300, color: C.green }}>~$168K/yr</div></div></div></FadeIn>}
+    </div>
+  );
+}
+
+/* ═══════ LEARN ═══════ */
+function LearnStep() {
+  const [ac, setAc] = useState(null), [sb, setSb] = useState(false);
+  useEffect(() => { const s=[0,1,2,0,1,2]; let i=0; const iv=setInterval(()=>{if(i<s.length){setAc(s[i]);i++;}else{clearInterval(iv);setTimeout(()=>setSb(true),400);}},1200); return()=>clearInterval(iv); }, []);
+  const cols = [
+    { stage: "SENSE", icon: Target, captures: ["Task decomposition accuracy at 90 days?", "Attrition flag real or false alarm?", "Skill gap ramp-up time → refines estimates"], result: "Gaps detected earlier. Decompositions sharper." },
+    { stage: "MATCH", icon: Search, captures: ["Which pool yielded the hire?", "Which work-evidence predicted success?", "Internal ramp = 3mo baseline"], result: "Evidence criteria evolve by real performance." },
+    { stage: "COMMIT", icon: DollarSign, captures: ["Task pricing accepted?", "Scope accuracy?", "Agent costs vs. projection?"], result: "Pricing refined. Cost models sharpened." },
+  ];
+  return (
+    <div style={{ padding: "18px 32px", maxWidth: 1200, margin: "0 auto" }}>
+      <FadeIn delay={100}><p style={{ fontSize: "12px", color: C.slateMd, margin: "0 0 12px" }}>Every hire feeds data back into detection, evaluation, and engagement.</p></FadeIn>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>{cols.map((col, i) => { const active = ac !== null && ac >= i, hl = ac === i; const Icon = col.icon; return <div key={i} style={{ flex: 1, background: C.card, borderRadius: "10px", border: `1px solid ${hl ? C.blueBorder : C.border}`, padding: "12px", transition: "all 0.4s" }}><div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "8px" }}><div style={{ width: 20, height: 20, borderRadius: "4px", background: C.blueBg, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={10} color={C.blue} /></div><span style={{ fontSize: "10px", fontWeight: 700, color: C.blue }}>{col.stage}</span>{hl && <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.blue, animation: "pulse 0.8s infinite", marginLeft: "auto" }} />}</div>{col.captures.map((c, j) => <div key={j} style={{ fontSize: "10px", color: C.slateMd, lineHeight: 1.5, padding: "2px 0", opacity: active ? 1 : 0.2, transition: "opacity 0.5s" }}>{c}</div>)}<div style={{ display: "flex", gap: "4px", marginTop: "8px", padding: "6px", background: C.blueBg, borderRadius: "5px", opacity: active ? 1 : 0.15, transition: "opacity 0.5s" }}><RotateCcw size={9} color={C.blue} style={{ marginTop: 1, flexShrink: 0 }} /><span style={{ fontSize: "9px", color: C.blue, fontWeight: 500, lineHeight: 1.3 }}>{col.result}</span></div></div>; })}</div>
+      {sb && <FadeIn delay={0}><div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}><div style={{ flex: 1, background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}`, padding: "10px", textAlign: "center" }}><div style={{ fontSize: "9px", color: C.slateLight, fontWeight: 700 }}>HIRE #1</div><div style={{ fontSize: "10px", color: C.slateLight }}>Cold start. Generic criteria.</div></div><div style={{ display: "flex", alignItems: "center" }}><ArrowRight size={12} color={C.blue} /></div><div style={{ flex: 1, background: C.blueBg, borderRadius: "8px", border: `1px solid ${C.blueBorder}`, padding: "10px", textAlign: "center" }}><div style={{ fontSize: "9px", color: C.blue, fontWeight: 700 }}>HIRE #10</div><div style={{ fontSize: "10px", color: C.blue, opacity: 0.85 }}>Predicts, knows channels, evaluates right signals, prices accurately.</div></div></div><div style={{ textAlign: "center", padding: "14px", background: C.card, borderRadius: "10px", border: `1px solid ${C.border}` }}><span style={{ fontSize: "14px", color: C.slate }}>Every hire makes the next one smarter. </span><span style={{ fontSize: "14px", color: C.blue, fontWeight: 600 }}>If it doesn't, it's not AI-native.</span></div></FadeIn>}
+    </div>
+  );
+}
+
+/* ═══════ INTRO CARDS ═══════ */
+const INTROS = [
+  { // SENSE
+    label: "SENSE",
+    title: "From static roles and JDs to predictive task graphs",
+    bullets: [
+      "Hiring starts from problems, not titles. Work becomes decomposable — each role replaced by a dynamic task graph of atomic, evolving units of work that can be fulfilled in multiple ways: hire, redeploy, or automate.",
+      "The system continuously monitors OKRs, project backlogs, attrition signals, and team dependencies to predict unmet work capacity — before anyone raises a requisition.",
+      "A living talent graph — built from GitHub activity, publications, career trajectories, and internal performance — replaces static resumes. Capability becomes observable through actual performance, not self-reported credentials.",
+      "Skills sit at the center as the atomic unit connecting work demand to talent supply. Every candidate is scored on demonstrated skills and learnability — not keywords."
+    ],
+    from: "Static JDs, episodic hiring triggered by vacancies, resumes as proxies for capability",
+    to: "Continuous sensing of capability gaps, dynamic task graphs, and living talent profiles built from real signals"
+  },
+  { // MATCH
+    label: "MATCH",
+    title: "From interviews to observed work and simulation",
+    bullets: [
+      "The best signal comes from observed work, not self-reports about past work. Candidates are evaluated in real task environments — through code contributions, published research, and work simulations.",
+      "The system analyzes actual code commits, publication methodology, citation patterns, and live task responses — generating structured evidence mapped to specific skills.",
+      "Any evidence of work — from any source, at any time — that reduces uncertainty about future success is treated as a signal. Matching becomes continuous, not episodic.",
+      "The output is an evidence-based scorecard — not subjective interview notes. Every skill rating traces back to the work product that demonstrated it."
+    ],
+    from: "Time-bounded interviews, indirect signals, interviewer bias, and artificial context",
+    to: "Real work products reveal decisions, trade-offs, and adaptability — turning assessment into a compounding data asset"
+  },
+  { // COMMIT
+    label: "COMMIT",
+    title: "From one-time offers to continuous, task-based engagement",
+    bullets: [
+      "Employment becomes a fluid, evolving engagement matched to tasks, performance, and mutual fit. Hiring ceases to be a moment and becomes continuous matching of people to work.",
+      "Each predicted task is priced individually — project-based for one-time deliverables, time-based for ongoing fractional work, per-outcome for AI agents, and blended for human+AI collaboration.",
+      "AI agent costs are measured by output: cost per benchmark run, cost per test generated. Human costs flex between project, time-based, and blended models."
+    ],
+    from: "A one-time, take-it-or-leave-it offer with terms locked at hire",
+    to: "Flexible, task-level engagement that adapts to evolving work and capability needs"
+  },
+  { // LEARN
+    label: "LEARN",
+    title: "From resetting every hire to compounding institutional intelligence",
+    bullets: [
+      "Most recruitment operates as a sequence of events that resets every time. An AI-native system treats every hire as training data — the start of developing institutional intelligence.",
+      "SENSE learns: was the task decomposition accurate at 90 days? Was the attrition flag real? How long did the skill gap take to close?",
+      "MATCH learns: which sourcing channel yielded the hire? Which assessment signals predicted on-the-job success? Which didn't?",
+      "COMMIT learns: was the task-based pricing accepted? Were project scopes accurate? Did agent costs match projections? Every data point sharpens the next offer."
+    ],
+    from: "Sequential workflow, triggered by vacancy, resets every time",
+    to: "An always-on intelligence system that compounds over time — the system gets smarter with every hire"
+  },
+];
+
+function IntroCard({ intro, onProceed, onReplay }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 500, padding: "40px" }}>
+      <div style={{ maxWidth: 680, textAlign: "center" }}>
+        <FadeIn delay={100}>
+          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "4px", color: C.blue, marginBottom: "8px" }}>{intro.label}</div>
+        </FadeIn>
+        <FadeIn delay={250}>
+          <div style={{ fontSize: "22px", fontWeight: 300, color: C.slate, lineHeight: 1.4, marginBottom: "28px" }}>{intro.title}</div>
+        </FadeIn>
+        <FadeIn delay={450}>
+          <div style={{ textAlign: "left", marginBottom: "28px" }}>
+            {intro.bullets.map((b, i) => (
+              <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "6px 0" }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.blue, marginTop: 6, flexShrink: 0, opacity: 0.4 }} />
+                <span style={{ fontSize: "13px", color: C.slateMd, lineHeight: 1.6 }}>{b}</span>
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+        <FadeIn delay={700}>
+          <div style={{ display: "flex", gap: "16px", alignItems: "center", justifyContent: "center", marginBottom: "28px" }}>
+            <div style={{ flex: 1, padding: "12px 16px", background: C.bg, borderRadius: "8px", border: `1px solid ${C.border}`, textAlign: "center" }}>
+              <div style={{ fontSize: "9px", fontWeight: 700, color: C.slateLight, letterSpacing: "1px", marginBottom: "4px" }}>FROM</div>
+              <div style={{ fontSize: "12px", color: C.slateLight, lineHeight: 1.4 }}>{intro.from}</div>
+            </div>
+            <ArrowRight size={16} color={C.slate} />
+            <div style={{ flex: 1, padding: "12px 16px", background: "#e2e8f0", borderRadius: "8px", border: "1px solid #cbd5e1", textAlign: "center" }}>
+              <div style={{ fontSize: "9px", fontWeight: 700, color: C.slate, letterSpacing: "1px", marginBottom: "4px" }}>TO</div>
+              <div style={{ fontSize: "12px", color: C.slate, lineHeight: 1.4 }}>{intro.to}</div>
+            </div>
+          </div>
+        </FadeIn>
+        <FadeIn delay={900}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px" }}>
+            {onReplay && <button onClick={onReplay} style={{
+              display: "inline-flex", alignItems: "center", gap: "6px", padding: "12px 24px", borderRadius: "8px",
+              border: "1px solid " + C.border, background: C.card, color: C.slateMd,
+              fontSize: "13px", cursor: "pointer"
+            }}><RotateCcw size={14} /> Replay from Beginning</button>}
+          <button onClick={onProceed} style={{
+            display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 32px", borderRadius: "8px",
+            border: "none", background: C.blue, color: "#fff",
+            fontSize: "14px", fontWeight: 600, cursor: "pointer", transition: "all 0.2s"
+          }}>
+            Proceed <ArrowRight size={16} />
+          </button>
+          </div>
+        </FadeIn>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════ MAIN ═══════ */
+// Steps: -1=title, 0=SENSE intro, 1=SENSE, 2=MATCH intro, 3=MATCH, 4=COMMIT intro, 5=COMMIT, 6=LEARN intro, 7=LEARN
+function App() {
+  const [step, setStep] = useState(-1), [fading, setFading] = useState(false), [playing, setPlaying] = useState(true);
+  const goTo = useCallback((n) => { setFading(true); setTimeout(() => { setStep(n); setFading(false); }, 300); }, []);
+
+  // No auto-advance — all transitions are user-controlled
+
+  // Which section is active (0-3)
+  const activeSection = step <= 0 ? 0 : step <= 1 ? 0 : step <= 3 ? 1 : step <= 5 ? 2 : 3;
+
+  // Next content step for "Proceed" button
+  const nextIntroStep = step === 1 ? 2 : step === 3 ? 4 : step === 5 ? 6 : null;
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: C.slate, display: "flex", flexDirection: "column" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}@keyframes fadeSlideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}*{box-sizing:border-box}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}`}</style>
+      <div style={{ background: C.card, borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ padding: "10px 32px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div><div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "3px", color: C.blue }}>AI-NATIVE RECRUITMENT</div><div style={{ fontSize: "16px", fontWeight: 400, color: C.slate }}>One Hire, End-to-End</div></div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "10px", color: C.slateLight }}>Staff AI/ML Engineer · People Technology</span>
+            <button onClick={() => setPlaying(!playing)} style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${C.border}`, background: C.card, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>{playing ? <Pause size={10} color={C.slateMd} /> : <Play size={10} color={C.slateMd} />}</button>
+          </div>
+        </div>
+        <div style={{ display: "flex", padding: "6px 32px 8px", gap: "4px" }}>{SECTIONS.map((s, i) => (
+          <div key={i} onClick={() => goTo(i * 2)} style={{ flex: 1, cursor: "pointer", padding: "4px 8px", borderRadius: "5px", background: activeSection === i ? C.blueBg : "transparent", border: activeSection === i ? `1px solid ${C.blueBorder}` : "1px solid transparent", transition: "all 0.3s" }}>
+            <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "1.5px", color: activeSection === i ? C.blue : i < activeSection ? "#93c5fd" : "#cbd5e1" }}>{s.label}</div>
+            <div style={{ fontSize: "9px", color: activeSection === i ? C.slateMd : "#cbd5e1" }}>{s.sub}</div>
+          </div>
+        ))}</div>
+      </div>
+      <div style={{ flex: 1, opacity: fading ? 0 : 1, transition: "opacity 0.3s", minHeight: 500, overflowY: "auto" }}>
+        {step === -1 && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 500, flexDirection: "column", gap: "12px" }}>
+          <FadeIn delay={100}><div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "4px", color: C.blue }}>AI-NATIVE RECRUITMENT</div></FadeIn>
+          <FadeIn delay={300}><div style={{ fontSize: "22px", fontWeight: 300, color: C.slate }}>One Hire, End-to-End</div></FadeIn>
+          <FadeIn delay={600}><div style={{ fontSize: "12px", color: C.slateLight, marginTop: "4px" }}>A simulation of what recruitment looks like when AI is the starting assumption</div></FadeIn>
+          <FadeIn delay={900}><button onClick={() => goTo(0)} style={{ marginTop: "20px", display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 32px", borderRadius: "8px", border: "none", background: C.blue, color: "#fff", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>Begin <ArrowRight size={16} /></button></FadeIn>
+        </div>}
+        {step === 0 && <IntroCard intro={INTROS[0]} onProceed={() => goTo(1)} onReplay={() => setStep(-1)} />}
+        {step === 1 && <SenseStep onProceedToMatch={() => goTo(2)} onReplay={() => { setStep(-1); }} />}
+        {step === 2 && <IntroCard intro={INTROS[1]} onProceed={() => goTo(3)} onReplay={() => setStep(-1)} />}
+        {step === 3 && <MatchStep />}
+        {step === 4 && <IntroCard intro={INTROS[2]} onProceed={() => goTo(5)} onReplay={() => setStep(-1)} />}
+        {step === 5 && <CommitStep />}
+        {step === 6 && <IntroCard intro={INTROS[3]} onProceed={() => goTo(7)} onReplay={() => setStep(-1)} />}
+        {step === 7 && <LearnStep />}
+        {/* Navigation */}
+        {step >= 1 && step % 2 === 1 && step !== 1 && (
+          <div style={{ padding: "12px 32px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button onClick={() => { setStep(-1); setPlaying(true); }} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${C.border}`, background: C.card, color: C.slateMd, fontSize: "12px", cursor: "pointer" }}><RotateCcw size={12} /> Replay</button>
+            {nextIntroStep !== null && <button onClick={() => goTo(nextIntroStep)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "10px 24px", borderRadius: "8px", border: `1px solid ${C.blue}`, background: C.blueBg, color: C.blue, fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+              {step === 3 ? "Proceed to Engagement" : step === 5 ? "Proceed to Learning Loop" : ""} <ArrowRight size={14} />
+            </button>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
